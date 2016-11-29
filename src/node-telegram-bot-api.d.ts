@@ -103,7 +103,9 @@ declare module 'node-telegram-bot-api' {
 
     interface TelegramBotWebHookOptions {
         key?: string,
-        cert?: string
+        cert?: string,
+        port?: number,
+        host?: string
     }
 
     type MessageType = 'text'|'audio'|'document'|'photo'|'sticker'|'video'|'voice'|'contact'
