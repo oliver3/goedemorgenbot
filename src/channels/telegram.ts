@@ -7,6 +7,7 @@ interface TelegramChannelConfig {
     token: string,
     polling: boolean,
     webHookUrl?: string,
+    webHookHost?: string,
     webHookPort?: number,
     certificate?: string
 }
@@ -17,7 +18,7 @@ export default class TelegramChannel {
     constructor(config: TelegramChannelConfig) {
         this.bot = new TelegramBot(config.token, {
             polling: config.polling,
-            webHook: { port: config.webHookPort }
+            webHook: { host: config.webHookHost, port: config.webHookPort }
         });
 
         if (config.polling) {
