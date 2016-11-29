@@ -18,8 +18,6 @@ export default class NsService {
                     return reject(err);
                 }
 
-                console.log(storingen);
-
                 resolve(
                     storingen.Gepland.map(geplandToString).concat(
                     storingen.Ongepland.map(ongeplandToString))

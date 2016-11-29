@@ -1,6 +1,7 @@
 import TelegramBot = require('node-telegram-bot-api')
 import * as Promise from 'bluebird';
 import { Message } from 'telegram-api-types';
+import log from '../common/log';
 
 
 export default class TelegramChannel {
@@ -10,12 +11,12 @@ export default class TelegramChannel {
         this.bot = new TelegramBot(config.token, {polling: config.polling});
 
         if (config.polling) {
-            console.log('Telegram channel opened with polling');
+            log('Telegram channel opened with polling');
         } else {
-            console.log('Telegram channel opened, setting up WebHook ...');
+            log('Telegram channel opened, setting up WebHook ...');
             this.bot.setWebHook(config.webHookUrl, config.certificate)
-                .then(() => console.log('Telegram WebHook successful!'))
-                .catch((e) => console.log('Telegram WebHook failed!!', e));
+                .then(() => log('Telegram WebHook successful!'))
+                .catch((e) => log('Telegram WebHook failed!!', e));
         }
     }
 
