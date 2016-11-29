@@ -3,12 +3,22 @@ import * as Promise from 'bluebird';
 import { Message } from 'telegram-api-types';
 import log from '../common/log';
 
+interface TelegramChannelConfig {
+    token: string,
+    polling: boolean,
+    webHookUrl?: string,
+    webHookPort?: number,
+    certificate?: string
+}
 
 export default class TelegramChannel {
     private bot: TelegramBot;
 
-    constructor(config: {token: string, polling: boolean, webHookUrl?: string, certificate?: string}) {
-        this.bot = new TelegramBot(config.token, {polling: config.polling});
+    constructor(config: TelegramChannelConfig) {
+        this.bot = new TelegramBot(config.token, {
+            polling: config.polling,
+            webHook: { port: config.webHookPort }
+        });
 
         if (config.polling) {
             log('Telegram channel opened with polling');

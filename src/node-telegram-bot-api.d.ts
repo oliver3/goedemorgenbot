@@ -103,7 +103,9 @@ declare module 'node-telegram-bot-api' {
 
     interface TelegramBotWebHookOptions {
         key?: string,
-        cert?: string
+        cert?: string,
+        port?: number,
+        host?: string
     }
 
     type MessageType = 'text'|'audio'|'document'|'photo'|'sticker'|'video'|'voice'|'contact'
@@ -153,7 +155,7 @@ declare module 'node-telegram-bot-api' {
          * Specify an url to receive incoming updates via an outgoing webHook.
          * @param {String} url URL where Telegram will make HTTP Post. Leave empty to
          * delete webHook.
-         * @param {String|stream.Stream} [cert] PEM certificate key (public).
+         * @param {String|Stream} [cert] PEM certificate key (public).
          * @see https://core.telegram.org/bots/api#setwebhook
          */
         setWebHook(url: string, cert?: string|Stream): Promise<any>
