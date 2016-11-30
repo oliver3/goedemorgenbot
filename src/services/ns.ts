@@ -3,6 +3,7 @@ import * as Promise from 'bluebird';
 import { StoringGepland } from 'ns-api-types';
 import { StoringOngepland } from 'ns-api-types';
 import { Storingen } from 'ns-api-types';
+import log from '../common/log';
 
 export default class NsService {
     private nsApi: NsApi;
@@ -15,6 +16,7 @@ export default class NsService {
         return new Promise<string[]>((resolve, reject) => {
             this.nsApi.storingen({station: 'ut'}, (err:any, storingen: Storingen) => {
                 if (err) {
+                    log(err);
                     return reject(err);
                 }
 
@@ -34,5 +36,5 @@ function geplandToString(storing: StoringGepland) {
 }
 
 function ongeplandToString(storing: StoringOngepland) {
-    return storing.Bericht.replace('\r', '\n');
+    return storing.Bericht.split('\r').join('\n');
 }
