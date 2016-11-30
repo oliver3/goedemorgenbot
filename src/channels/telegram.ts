@@ -1,7 +1,7 @@
 import TelegramBot = require('node-telegram-bot-api')
 import * as Promise from 'bluebird';
 import { Message } from 'telegram-api-types';
-import log from '../common/log';
+import { log } from '../common/log';
 
 interface TelegramChannelConfig {
     token: string,

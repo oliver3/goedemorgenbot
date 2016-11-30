@@ -2,8 +2,11 @@ import config from './config';
 import TelegramChannel from './channels/telegram';
 import NsService from './services/ns';
 import * as Promise from 'bluebird';
-import log from './common/log';
+import { log } from './common/log';
 
+if (process.argv[2] === 'debug') {
+    process.env.DEBUG = '*';
+}
 
 const telegramChannel = new TelegramChannel(config.channels.telegram);
 

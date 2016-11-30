@@ -3,7 +3,7 @@ import * as Promise from 'bluebird';
 import { StoringGepland } from 'ns-api-types';
 import { StoringOngepland } from 'ns-api-types';
 import { Storingen } from 'ns-api-types';
-import log from '../common/log';
+import { log, debug } from '../common/log';
 
 export default class NsService {
     private nsApi: NsApi;
@@ -15,6 +15,7 @@ export default class NsService {
     getStoringen(): Promise<string[]> {
         return new Promise<string[]>((resolve, reject) => {
             this.nsApi.storingen({station: 'ut'}, (err:any, storingen: Storingen) => {
+                debug(storingen);
                 if (err) {
                     log(err);
                     return reject(err);
