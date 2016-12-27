@@ -2,6 +2,7 @@ import TelegramBot = require('node-telegram-bot-api')
 import * as Promise from 'bluebird';
 import { Message } from 'telegram-api-types';
 import { log } from '../common/log';
+import { Engine } from '../engine';
 
 interface TelegramChannelConfig {
     token: string,
@@ -15,10 +16,10 @@ interface TelegramChannelConfig {
 export default class TelegramChannel {
     private bot: TelegramBot;
 
-    constructor(config: TelegramChannelConfig) {
+    constructor(private engine: Engine, config: TelegramChannelConfig) {
         this.bot = new TelegramBot(config.token, {
             polling: config.polling,
-            webHook: { host: config.webHookHost, port: config.webHookPort }
+            webHook: {host: config.webHookHost, port: config.webHookPort}
         });
 
         if (config.polling) {
@@ -29,6 +30,10 @@ export default class TelegramChannel {
                 .then(() => log('Telegram WebHook successful!'))
                 .catch((e) => log('Telegram WebHook failed!!', e));
         }
+
+        this.bot.on('text', (msg) => {
+            this.engine.handleMessage(this, msg);
+        })
     }
 
     onText(fn: (event: Message, text: string) => any) {
@@ -43,6 +48,10 @@ export default class TelegramChannel {
         }
 
         return this.bot.sendMessage(context.chat.id, text);
+    }
+
+    sendTexts(context: Message, texts: string[]): Promise<any> {
+        return Promise.each(texts, (response) => this.sendText(context, response))
     }
 
 }

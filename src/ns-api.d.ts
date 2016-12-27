@@ -37,7 +37,17 @@ declare module 'ns-api' {
     class NsApi {
         constructor(conf: {username: string, password: string, timeout?: number})
         // vertrektijden: (station: string, callback<Vertrektijden>) => void,
-        // reisadvies: methodReisadvies,
+        reisadvies: (params: {
+            fromStation: string,
+            toStation: string,
+            viaStation?: string,
+            previousAdvices?: number, // default & max 5
+            nextAdvices?: number, // default & max 5
+            dateTime?: string // ISO8601
+            Departure?: boolean // true: vertrek, false: aankomst
+            hslAllowed?: boolean // default true
+            yearCard?: boolean // default false, true geeft meer (duurdere) opties
+        }, callback: Callback<any>) => void;
         // prijzen: methodPrijzen,
         // stations: methodStations,
         storingen: (params: {

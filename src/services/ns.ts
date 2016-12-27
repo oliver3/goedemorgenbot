@@ -5,23 +5,27 @@ import { StoringOngepland } from 'ns-api-types';
 import { Storingen } from 'ns-api-types';
 import { log, debug } from '../common/log';
 import { Message } from 'telegram-api-types';
+import { Engine } from '../engine';
 
 export default class NsService {
     private nsApi: NsApi;
 
-    constructor(config: {username: string, password: string}) {
+    constructor(private engine: Engine, config: {username: string, password: string}) {
         this.nsApi = new NsApi(config);
+
+        engine.registerCommand('/storingen', this.getStoringen.bind(this));
+        engine.registerCommand('/trein (\\w*) (\\w*)', this.getReisadvies.bind(this));
     }
 
-    getStoringen(): Promise<string[]> {
+    getStoringen(context: Message): Promise<string[]> {
         return new Promise<string[]>((resolve, reject) => {
             this.nsApi.storingen({station: 'ut'}, (err: any, storingen: Storingen) => {
-                debug(storingen);
                 if (err) {
-                    log(err);
-                    return reject(err);
+                    return err.api && err.api.message ? resolve([err.api.message]) : reject(err);
                 }
 
+                debug(storingen);
+                log(`@${context.from.username} <= ${storingen.Gepland.length} gepland, ${storingen.Ongepland.length} ongepland`);
                 resolve(
                     storingen.Gepland.map(geplandToString).concat(
                         storingen.Ongepland.map(ongeplandToString))
@@ -31,21 +35,20 @@ export default class NsService {
 
     }
 
-    // getReisadvies(from: string, to: string): Promise<string[]> {
-    //     return new Promise<string[]>((resolve, reject) => {
-    //         this.nsApi.reisadvies({fromStation: from, toStation: to}, (advies)
-    //         {
-    //
-    //         }
-    //         )
-    //     });
-    // }
+    getReisadvies(context: Message, from: string, to: string): Promise<string[]> {
+        return new Promise<string[]>((resolve, reject) => {
+            this.nsApi.reisadvies({fromStation: from, toStation: to}, (err, advies) => {
+                if (err) {
+                    return err.api && err.api.message ? resolve([err.api.message]) : reject(err);
+                }
 
-    getResponses(event: Message, text: string): Promise<string[]> {
-        return chooseResponse({
-            '/storingen': () => this.getStoringen(),
-            // '/trein (\\w+)\\W(\\w+))': (from, to) => this.getReisadvies(from, to)
-        }, text);
+                log(`@${context.from.username} <= ${JSON.stringify(advies)}`);
+
+                // TODO Advies type
+
+                resolve(['done']);
+            });
+        });
     }
 }
 
@@ -55,19 +58,4 @@ function geplandToString(storing: StoringGepland) {
 
 function ongeplandToString(storing: StoringOngepland) {
     return storing.Bericht.split('\r').join('\n');
-}
-
-type Answers = {[r: string]: (...args: string[]) => Promise<string[]>};
-
-function chooseResponse(answers: Answers, text: string): Promise<string[]> {
-    for (const regexp of Object.keys(answers)) {
-        const match = text.match(regexp);
-
-        if (match) {
-            return answers[regexp](...match.slice(1));
-        }
-    }
-
-    return Promise.resolve([]);
-
 }
