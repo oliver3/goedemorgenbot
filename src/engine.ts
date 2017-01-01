@@ -34,7 +34,10 @@ export class Engine {
             .catch((err) => {
                 log(`!! Error while handling "@${msg.from.username} => ${msg.text}"`);
                 log(err);
-
+                return channel.sendTexts(msg, [
+                    err && err.message || 'Something went really wrong..',
+                    err && err.error && err.error.message
+                ]);
             })
 
     }
