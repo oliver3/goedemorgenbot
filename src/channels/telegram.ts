@@ -2,7 +2,7 @@ import TelegramBot = require('node-telegram-bot-api')
 import * as Promise from 'bluebird';
 import { Message } from 'telegram-api-types';
 import { log } from '../common/log';
-import { Engine } from '../engine';
+import { RespondFunction } from '../engine';
 
 interface TelegramChannelConfig {
     token: string,
@@ -13,45 +13,35 @@ interface TelegramChannelConfig {
     certificate?: string
 }
 
-export default class TelegramChannel {
-    private bot: TelegramBot;
+export function TelegramChannel(config: TelegramChannelConfig) {
+    const bot = new TelegramBot(config.token, {
+        polling: config.polling,
+        webHook: {host: config.webHookHost, port: config.webHookPort}
+    })
 
-    constructor(private engine: Engine, config: TelegramChannelConfig) {
-        this.bot = new TelegramBot(config.token, {
-            polling: config.polling,
-            webHook: {host: config.webHookHost, port: config.webHookPort}
-        });
-
-        if (config.polling) {
-            log('Telegram channel opened with polling');
-        } else {
-            log('Telegram channel opened, setting up WebHook ...');
-            this.bot.setWebHook(config.webHookUrl, config.certificate)
-                .then(() => log('Telegram WebHook successful!'))
-                .catch((e) => log('Telegram WebHook failed!!', e));
-        }
-
-        this.bot.on('text', (msg) => {
-            this.engine.handleMessage(this, msg);
-        })
+    if (config.polling) {
+        log('Telegram channel opened with polling');
+    } else {
+        log('Telegram channel opened, setting up WebHook ...')
+        bot.setWebHook(config.webHookUrl, config.certificate)
+            .then(() => log('Telegram WebHook successful!'))
+            .catch((e) => log('Telegram WebHook failed!!', e))
     }
 
-    onText(fn: (event: Message, text: string) => any) {
-        this.bot.on('text', (msg) => {
-            fn(msg, msg.text);
-        })
+    const sendText = (context: Message) => (text: string) =>
+        (text === undefined || text.length === 0)
+            ? Promise.resolve()
+            : bot.sendMessage(context.chat.id, text)
+
+
+    const sendTexts = (context: Message, texts: string[]) =>
+        Promise.each(texts, sendText(context))
+
+    const onText = (fn: (respond: RespondFunction, msg: Message) => Promise<any>) => {
+        bot.on('text', (msg: Message) => fn(sendTexts, msg));
     }
 
-    sendText(context: Message, text: string): Promise<any> {
-        if (text === undefined || text.length === 0) {
-            return Promise.resolve();
-        }
-
-        return this.bot.sendMessage(context.chat.id, text);
+    return {
+        onText
     }
-
-    sendTexts(context: Message, texts: string[]): Promise<any> {
-        return Promise.each(texts, (response) => this.sendText(context, response))
-    }
-
 }

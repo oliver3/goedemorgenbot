@@ -5,28 +5,24 @@ import { StoringOngepland } from 'ns-api-types';
 import { Storingen } from 'ns-api-types';
 import { log, debug } from '../common/log';
 import { Message } from 'telegram-api-types';
-import { Engine } from '../engine';
 import { Advies } from 'ns-api-types';
 import { ReisMogelijkheid } from 'ns-api-types';
 import * as dateFns from 'date-fns';
 import { ReisDeel } from 'ns-api-types';
 import { ReisStop } from 'ns-api-types';
 
-export default class NsService {
-    private nsApi: NsApi;
+type CommandFunction = (msg: Message, ...args: string[]) => Promise<string[]>;
 
-    constructor(private engine: Engine, config: {username: string, password: string}) {
-        this.nsApi = new NsApi(config);
+export function NsService(config: {username: string, password: string}) {
+    const nsApi = new NsApi(config);
 
-        engine.registerCommand('/storingen', this.getStoringen.bind(this));
-        engine.registerCommand('/trein (\\w*) (\\w*)', this.getReisadvies.bind(this));
-    }
-
-    getStoringen(context: Message): Promise<string[]> {
-        return new Promise<string[]>((resolve, reject) => {
-            this.nsApi.storingen({station: 'ut'}, (err: any, storingen: Storingen) => {
+    const getStoringen = (context: Message): Promise<string[]> =>
+        new Promise<string[]>((resolve, reject) => {
+            nsApi.storingen({station: 'ut'}, (err: any, storingen: Storingen) => {
                 if (err) {
-                    return err.api && err.api.message ? resolve([err.api.message]) : reject(err);
+                    return err.api && err.api.message ?
+                        resolve([err.api.message]) :
+                        reject(err)
                 }
 
                 debug(storingen);
@@ -34,17 +30,16 @@ export default class NsService {
                 resolve(
                     storingen.Gepland.map(geplandToString).concat(
                         storingen.Ongepland.map(ongeplandToString))
-                );
-            });
-        });
+                )
+            })
+        })
 
-    }
 
-    getReisadvies(context: Message, from: string, to: string): Promise<string[]> {
+    function getReisadvies(context: Message, from: string, to: string): Promise<string[]> {
         const nrAdviezen = 3;
 
         return new Promise<string[]>((resolve, reject) => {
-            this.nsApi.reisadvies({
+            nsApi.reisadvies({
                 fromStation: from,
                 toStation: to,
                 previousAdvices: 0,
@@ -60,69 +55,83 @@ export default class NsService {
             });
         });
     }
-}
 
-function geplandToString(storing: StoringGepland) {
-    return `Geplande werkzaamheden ${storing.Periode} op traject ${storing.Traject}`;
-}
-
-function ongeplandToString(storing: StoringOngepland) {
-    return storing.Bericht.split('\r').join('\n');
-}
-
-function reisMogelijkheidToString(reis: ReisMogelijkheid): string {
-    const vertrekTijd = tijdToString(reis.GeplandeVertrekTijd, reis.VertrekVertraging);
-    const aankomstTijd = tijdToString(reis.GeplandeAankomstTijd, reis.AankomstVertraging);
-    const reistijdActueel = reis.ActueleReisTijd;
-    const overstappen = reis.AantalOverstappen;
-
-    return [
-        `<b>${vertrekTijd} - ${aankomstTijd} (${reistijdActueel}) ${overstappen}x</b>`,
-    ]
-        .concat(reis.Meldingen || [])
-        .concat(reis.ReisDeel.map(reisDeelToString))
-        .join('\n');
-}
-
-function reisDeelToString(reisDeel: ReisDeel): string {
-    const vertrek = reisStopToString(reisDeel.ReisStop[0]);
-    const aankomst = reisStopToString(reisDeel.ReisStop[reisDeel.ReisStop.length-1]);
-
-    return [
-        `V ${vertrek}`,
-        `    <i>${reisDeel.VervoerType}</i>`,
-        `A ${aankomst}`
-    ].join('\n');
-}
-
-function reisStopToString(reisStop: ReisStop): string {
-    const tijd = tijdToString(reisStop.Tijd, reisStop.VertrekVertraging);
-    const spoor = spoorToString(reisStop.Spoor, reisStop.SpoorWijziging);
-    const station = stationToString(reisStop.Naam);
-
-    return `<b>${tijd}</b>  sp ${spoor}  ${station}`
-}
-
-function tijdToString(tijd: string, vertraging?: string): string {
-    if (tijd === undefined) {
-        return '--:--';
+    function geplandToString(storing: StoringGepland) {
+        return `Geplande werkzaamheden ${storing.Periode} op traject ${storing.Traject}`;
     }
 
-    // 'HH:mm'
-    tijd = dateFns.format(dateFns.parse(tijd), 'HH:mm');
+    function ongeplandToString(storing: StoringOngepland) {
+        return storing.Bericht.split('\r').join('\n');
+    }
 
-    // '+5'
-    vertraging = vertraging === undefined ? '' : vertraging.replace(/ min$/, '');
+    function reisMogelijkheidToString(reis: ReisMogelijkheid): string {
+        const vertrekTijd = tijdToString(reis.GeplandeVertrekTijd, reis.VertrekVertraging);
+        const aankomstTijd = tijdToString(reis.GeplandeAankomstTijd, reis.AankomstVertraging);
+        const reistijdActueel = reis.ActueleReisTijd;
+        const overstappen = reis.AantalOverstappen;
 
-    return `${tijd}${vertraging}`;
-}
+        return [
+            `<b>${vertrekTijd} - ${aankomstTijd} (${reistijdActueel}) ${overstappen}x</b>`,
+        ]
+            .concat(reis.Meldingen || [])
+            .concat(reis.ReisDeel.map(reisDeelToString))
+            .join('\n');
+    }
 
-function spoorToString(spoor: string, gewijzigd: boolean) {
-    return `${spoor} ${gewijzigd ? '(!)' : ''}`;
-}
+    function reisDeelToString(reisDeel: ReisDeel): string {
+        const vertrek = reisStopToString(reisDeel.ReisStop[0]);
+        const aankomst = reisStopToString(reisDeel.ReisStop[reisDeel.ReisStop.length - 1]);
 
-function stationToString(station: string) {
-    return station
+        return [
+            `V ${vertrek}`,
+            `    <i>${reisDeel.VervoerType}</i>`,
+            `A ${aankomst}`
+        ].join('\n');
+    }
+
+    function reisStopToString(reisStop: ReisStop): string {
+        const tijd = tijdToString(reisStop.Tijd, reisStop.VertrekVertraging);
+        const spoor = spoorToString(reisStop.Spoor, reisStop.SpoorWijziging);
+        const station = stationToString(reisStop.Naam);
+
+        return `<b>${tijd}</b>  sp ${spoor}  ${station}`
+    }
+
+    function tijdToString(tijd: string, vertraging?: string): string {
+        if (tijd === undefined) {
+            return '--:--';
+        }
+
+        // 'HH:mm'
+        tijd = dateFns.format(dateFns.parse(tijd), 'HH:mm');
+
+        // '+5'
+        vertraging = vertraging === undefined ? '' : vertraging.replace(/ min$/, '');
+
+        return `${tijd}${vertraging}`;
+    }
+
+    function spoorToString(spoor: string, gewijzigd: boolean) {
+        return `${spoor} ${gewijzigd ? '(!)' : ''}`;
+    }
+
+    function stationToString(station: string) {
+        return station
         // .replace('Lunetten', 'Lun.')
         // .replace('Centraal', 'C.');
+    }
+
+    function getCommands(): [string, CommandFunction][] {
+        return [
+            ['/storingen', getStoringen],
+            ['/trein (\\w*) (\\w*)', getReisadvies]
+        ]
+    }
+
+    return {
+        getCommands
+    };
+
+
 }
+

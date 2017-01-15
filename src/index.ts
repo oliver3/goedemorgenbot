@@ -1,18 +1,19 @@
 import config from './config';
-import TelegramChannel from './channels/telegram';
-import NsService from './services/ns';
+import { TelegramChannel } from './channels/telegram';
+import { NsService } from './services/ns';
 import * as Promise from 'bluebird';
 import { log } from './common/log';
-import { Engine } from './engine';
+import { CommandFunction, handleMessage } from './engine';
 
 if (process.argv[2] === 'debug') {
     process.env.DEBUG = '*';
 }
 
-const engine = new Engine();
+const commands: [string, CommandFunction][] =
+    NsService(config.services.ns).getCommands()
 
-const nsService = new NsService(engine, config.services.ns);
+TelegramChannel(config.channels.telegram)
+    .onText(handleMessage(commands))
 
-const telegramChannel = new TelegramChannel(engine, config.channels.telegram);
 
 log('Engine started!');
