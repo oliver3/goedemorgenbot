@@ -13,7 +13,7 @@ export const handleMessage = (commands: [string, CommandFunction][]) => (respond
 
     if (!command) {
         log(`@${msg.from.username} <= ????`);
-        return respond(msg, ['Ik begrijp niet wat je zegt.. ']);
+        return respond(msg, ['Ik begrijp niet wat je zegt.. Probeer eens <b>/storingen</b> of <b>trein utln asd</b>']);
     }
 
     const [, ...args] = msg.text.match(command[0]);
