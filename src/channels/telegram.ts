@@ -31,7 +31,7 @@ export function TelegramChannel(config: TelegramChannelConfig) {
     const sendText = (context: Message) => (text: string) =>
         (text === undefined || text.length === 0)
             ? Promise.resolve()
-            : bot.sendMessage(context.chat.id, text)
+            : bot.sendMessage(context.chat.id, text, {parse_mode: 'HTML'})
 
 
     const sendTexts = (context: Message, texts: string[]) =>
